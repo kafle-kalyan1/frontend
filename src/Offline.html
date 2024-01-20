@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/Favicons/browser.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline</title>
+  <style>
+    body {
+      background-color: #f44336;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      color: #fff;
+      font-size: 3rem;
+      margin-bottom: 2rem;
+    }
+    svg {
+      width: 10rem;
+      height: 10rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>You're Offline</h1>
+  <svg viewBox="0 0 24 24">
+    <path fill="#fff" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm1-11h-2v5h2v-5z"/>
+    
+  </svg>
+  <input type="file" id="imageUploader" accept="image/*">
+<button id="uploadButton">Upload</button>
+  <script>
+    document.getElementById('uploadButton').addEventListener('click', () => {
+      const imageInput = document.getElementById('imageUploader');
+      const file = imageInput.files[0];
+      if (file) {
+        storeImageInIndexedDB(file);
+      } else {
+        console.log('No file selected');
+      }
+    });
+    
+    function storeImageInIndexedDB(file) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const imgData = event.target.result;
+        // Open a database, store the image
+        const request = indexedDB.open('imageDB', 1);
+    
+        request.onupgradeneeded = function(event) {
+          const db = event.target.result;
+          const objectStore = db.createObjectStore('images', { keyPath: 'id', autoIncrement: true });
+          objectStore.createIndex('image', 'image', { unique: false });
+        };
+    
+        request.onsuccess = function(event) {
+          const db = event.target.result;
+          const transaction = db.transaction(['images'], 'readwrite');
+          const objectStore = transaction.objectStore('images');
+          const imageStoreRequest = objectStore.add({ image: imgData });
+          
+          imageStoreRequest.onsuccess = function() {
+            console.log('Image stored in IndexedDB');
+          };
+    
+          imageStoreRequest.onerror = function() {
+            console.log('Error storing image');
+          };
+        };
+    
+        request.onerror = function(event) {
+          console.log('Database error: ', event.target.errorCode);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+    
+  </script>
+  <script type="module" src="/src/Offline/Offline.jsx"></script>
+</body>
+</html>
